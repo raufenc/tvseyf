@@ -34,6 +34,71 @@ $('[data-sort]')?.addEventListener('change',e=>{
  if(e.target.value==='old')rows.reverse();rows.forEach(n=>grid.append(n));
 });
 $$('[data-sort-grid] > *').forEach((n,i)=>n.dataset.original=i);
+
+/* Vitrin: otomatik geçiş 7 sn; odak, durdurma ve hareket tercihi korunur. */
+$$('[data-carousel]').forEach(root=>{
+ const slides=$$('[data-slide]',root), toggle=$('[data-carousel-toggle]',root),status=$('[data-carousel-status]',root);
+ if(slides.length<2)return;
+ const preference=matchMedia('(prefers-reduced-motion: reduce)');
+ let index=0,paused=preference.matches,hovered=false,timer;
+ function sync(){
+  clearTimeout(timer);
+  toggle.disabled=preference.matches;
+  toggle.textContent=paused||preference.matches?ui.play_carousel:ui.pause_carousel;
+  toggle.setAttribute('aria-pressed',String(!paused&&!preference.matches));
+  if(!paused&&!preference.matches&&!hovered&&!document.hidden)timer=setTimeout(()=>show(index+1),7000);
+ }
+ function show(next,manual=false){
+  index=(next+slides.length)%slides.length;
+  slides.forEach((slide,i)=>slide.hidden=i!==index);
+  status.textContent=(index+1)+' / '+slides.length;
+  if(manual){paused=true;announce((ui.slide||'')+' '+(index+1)+' / '+slides.length);}
+  sync();
+ }
+ $('[data-carousel-prev]',root).addEventListener('click',()=>show(index-1,true));
+ $('[data-carousel-next]',root).addEventListener('click',()=>show(index+1,true));
+ toggle.addEventListener('click',()=>{paused=!paused;sync();});
+ root.addEventListener('focusin',e=>{if(e.target!==toggle){paused=true;sync();}});
+ root.addEventListener('mouseenter',()=>{hovered=true;sync();});
+ root.addEventListener('mouseleave',()=>{hovered=false;sync();});
+ root.addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight'].includes(e.key)||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+  e.preventDefault();const direction=document.documentElement.dir==='rtl'?-1:1;
+  show(index+(e.key==='ArrowRight'?1:-1)*direction,true);
+ });
+ document.addEventListener('visibilitychange',sync);
+ preference.addEventListener('change',()=>{if(preference.matches)paused=true;sync();});
+ sync();
+});
+
+/* Kitaplık, konu ve Shorts aynı hoca filtresi sözleşmesini kullanır. */
+$$('[data-catalogue]').forEach(root=>{
+ const cards=$$('[data-filter-item],.video-card',root),select=$('[data-filter-teacher]',root),query=$('[data-filter-query]',root);
+ const chips=$$('[data-filter-chip]',root),status=$('[data-filter-status]',root);
+ const params=new URLSearchParams(location.search);let teacher=params.get('teacher')||'';
+ const valid=select?[...select.options].map(o=>o.value):chips.map(b=>b.dataset.filterChip);
+ if(!valid.includes(teacher))teacher='';
+ if(select)select.value=teacher;
+ if(query)query.value=params.get('q')||'';
+ function filter(update=false){
+  const terms=fold(query?.value).trim().split(/\s+/).filter(Boolean);let count=0;
+  cards.forEach(card=>{
+   const allowed=(!teacher||(card.dataset.teachers||'').split(' ').includes(teacher))&&terms.every(t=>fold(card.dataset.bookTitle||'').includes(t));
+   card.hidden=!allowed;if(allowed)count++;
+  });
+  chips.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.filterChip===teacher)));
+  if(status)status.textContent=count?count+' '+ui.filter_count:ui.filter_empty;
+  if(update){const url=new URL(location.href);for(const [key,value] of [['teacher',teacher],['q',query?.value.trim()]]){if(value)url.searchParams.set(key,value);else url.searchParams.delete(key);}history.replaceState(null,'',url);}
+ }
+ select?.addEventListener('change',()=>{teacher=select.value;filter(true);});
+ query?.addEventListener('input',()=>filter(true));
+ chips.forEach(b=>b.addEventListener('click',()=>{teacher=b.dataset.filterChip;filter(true);}));
+ filter();
+});
+/* Yerleşik details mağaza seçimini JS olmadan da açar; bir seferde tek liste. */
+$$('[data-store-choice]').forEach(choice=>choice.addEventListener('toggle',()=>{
+ if(choice.open)$$('[data-store-choice]').forEach(other=>{if(other!==choice)other.open=false;});
+}));
 $$('[data-panel]').forEach(b=>b.addEventListener('click',()=>{
  $$('[data-panel]').forEach(x=>{const selected=x===b;x.setAttribute('aria-selected',String(selected));$('#'+x.dataset.panel).hidden=!selected;});
 }));
@@ -148,16 +213,18 @@ $$('[data-share]').forEach(b=>b.addEventListener('click',async()=>{
 
 /* Kısa videolar: tek dialog, kapatıldığında iframe kaldırılır. */
 const shortCards=$$('[data-short]');let shortDialog=null,shortIndex=0,shortOpener=null,lastNavigate=0,touchY=0,lastGesture=0;
+const visibleShorts=()=>shortCards.map((card,index)=>card.hidden?-1:index).filter(index=>index>=0);
 function renderShort(){
  const card=shortCards[shortIndex];const host=$('.short-modal-player',shortDialog);
  const iframe=el('iframe');iframe.tabIndex=-1;iframe.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(card.dataset.short)+'?autoplay=1&playsinline=1&rel=0';iframe.title=card.dataset.title;iframe.src+='&enablejsapi=1&origin='+encodeURIComponent(location.origin);iframe.allow='autoplay; encrypted-media; picture-in-picture';iframe.allowFullscreen=true;host.replaceChildren(iframe);
  const surface=el('button','short-surface');surface.setAttribute('aria-label',ui.pause);surface.setAttribute('aria-pressed','false');surface.append(el('span','big-play','▶'));
  surface.addEventListener('click',()=>{if(Date.now()-lastGesture<400)return;const paused=surface.getAttribute('aria-pressed')!=='true';surface.setAttribute('aria-pressed',String(paused));surface.classList.toggle('paused',paused);surface.setAttribute('aria-label',paused?ui.play:ui.pause);iframe.contentWindow.postMessage(JSON.stringify({event:'command',func:paused?'pauseVideo':'playVideo',args:[]}), 'https://www.youtube-nocookie.com');});host.append(surface);
  $('.short-modal-title',shortDialog).textContent=card.dataset.title;
- $('[data-short-step="-1"]',shortDialog).disabled=shortIndex===0;
- $('[data-short-step="1"]',shortDialog).disabled=shortIndex===shortCards.length-1;
+ const visible=visibleShorts(),position=visible.indexOf(shortIndex);
+ $('[data-short-step="-1"]',shortDialog).disabled=position===0;
+ $('[data-short-step="1"]',shortDialog).disabled=position===visible.length-1;
 }
-function navigateShort(delta){if(Date.now()-lastNavigate<550)return;lastNavigate=Date.now();const next=Math.max(0,Math.min(shortCards.length-1,shortIndex+delta));if(next!==shortIndex){shortIndex=next;renderShort();}}
+function navigateShort(delta){if(Date.now()-lastNavigate<550)return;lastNavigate=Date.now();const visible=visibleShorts(),position=visible.indexOf(shortIndex);const next=visible[Math.max(0,Math.min(visible.length-1,position+delta))];if(next!==undefined&&next!==shortIndex){shortIndex=next;renderShort();}}
 function openShort(index,opener){
  if(!shortDialog){
   shortDialog=el('dialog','short-dialog');shortDialog.setAttribute('aria-label',ui.shorts);
