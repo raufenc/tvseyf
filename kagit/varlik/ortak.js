@@ -306,3 +306,10 @@ function renderResults(found,query,done){
  results.append(fragment);$('#search-status').textContent=(found.size?found.size+' '+ui.results:done?ui.no_results:ui.searching)+(!done&&found.size?' · '+ui.searching:'');
 }
 })();
+
+// Tasarım seçici: öbür tasarıma geçerken arama sorgusu ve #dakika korunur; dışarı tıklayınca kapanır.
+document.addEventListener('click',e=>{
+  const a=e.target.closest('.design-switch a');
+  if(a&&!a.hasAttribute('aria-current'))a.href=a.href.split(/[?#]/)[0]+location.search+location.hash;
+  document.querySelectorAll('.design-switch[open]').forEach(d=>{if(!d.contains(e.target))d.open=false});
+});
