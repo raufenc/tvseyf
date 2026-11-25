@@ -107,3 +107,26 @@ html[lang=ar] .design-switch{font-family:'IBM Plex Sans Arabic',system-ui,sans-s
 .design-switch summary:focus-visible,.design-switch a:focus-visible{outline:3px solid #236f7e;outline-offset:2px}
 @media(max-width:520px){.design-switch{inset-block-end:12px;inset-inline-start:12px;font-size:12px}.design-switch summary{padding:8px 12px}}
 @media print{.design-switch{display:none}}
+
+/* Bu haftanın slider'ı: küçük resim kırpılmadan büyük; düzen ortak, renkler temadan (currentColor). */
+.week-slider{margin-block:28px 56px;min-width:0}
+.week-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.week-head h1{font-size:clamp(24px,2.6vw,36px);line-height:1.2;margin:0}
+.week-controls{display:flex;align-items:center;gap:10px}
+.week-controls button{min-height:44px;min-width:44px}
+.week-controls [data-carousel-status]{font-variant-numeric:tabular-nums;white-space:nowrap}
+[dir=rtl] .week-controls [data-carousel-prev],[dir=rtl] .week-controls [data-carousel-next]{transform:scaleX(-1)}
+.week-stage{max-width:1120px;margin-inline:auto}
+.week-frame{display:block;aspect-ratio:16/9;overflow:hidden;border-radius:6px;background:#00000014}
+.week-frame img{display:block;width:100%;height:100%;object-fit:cover;max-width:none;margin:0;border-radius:0;opacity:1;filter:none}
+.week-caption{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;padding-block:14px 4px}
+.week-caption .eyebrow{margin:0}
+.week-caption .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0}
+.week-strip{max-width:1120px;margin:18px auto 0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);gap:10px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:thin}
+.week-thumb{padding:0;margin:0;border:2px solid transparent;border-radius:5px;background:none;opacity:.55;cursor:pointer;min-height:0;line-height:0;transition:opacity .2s,border-color .2s}
+.week-thumb img{display:block;width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:3px;margin:0;max-width:none}
+.week-thumb:hover,.week-thumb:focus-visible{opacity:.85}
+.week-thumb[aria-current]{opacity:1;border-color:currentColor}
+@media(prefers-reduced-motion:no-preference){.week-slide:not([hidden]){animation:hafta-gecis .6s ease}}
+@keyframes hafta-gecis{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.week-head{align-items:flex-start}.week-controls{width:100%;justify-content:space-between}.week-strip{grid-auto-columns:42%}.week-caption{align-items:flex-start}}

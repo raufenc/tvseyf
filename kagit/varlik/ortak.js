@@ -48,15 +48,20 @@ $$('[data-carousel]').forEach(root=>{
   toggle.setAttribute('aria-pressed',String(!paused&&!preference.matches));
   if(!paused&&!preference.matches&&!hovered&&!document.hidden)timer=setTimeout(()=>show(index+1),7000);
  }
+ const thumbs=$$('[data-carousel-goto]',root), strip=thumbs[0]&&thumbs[0].parentElement;
  function show(next,manual=false){
   index=(next+slides.length)%slides.length;
   slides.forEach((slide,i)=>slide.hidden=i!==index);
   status.textContent=(index+1)+' / '+slides.length;
+  // Şeritte etkin küçük resim işaretlenir ve görünür alana kaydırılır (sayfa kaymaz).
+  thumbs.forEach((t,i)=>i===index?t.setAttribute('aria-current','true'):t.removeAttribute('aria-current'));
+  if(strip&&thumbs[index]){const t=thumbs[index];strip.scrollTo({left:t.offsetLeft-strip.offsetLeft-(strip.clientWidth-t.clientWidth)/2,behavior:preference.matches?'auto':'smooth'});}
   if(manual){paused=true;announce((ui.slide||'')+' '+(index+1)+' / '+slides.length);}
   sync();
  }
  $('[data-carousel-prev]',root).addEventListener('click',()=>show(index-1,true));
  $('[data-carousel-next]',root).addEventListener('click',()=>show(index+1,true));
+ thumbs.forEach(t=>t.addEventListener('click',()=>show(+t.dataset.carouselGoto,true)));
  toggle.addEventListener('click',()=>{paused=!paused;sync();});
  root.addEventListener('focusin',e=>{if(e.target!==toggle){paused=true;sync();}});
  root.addEventListener('mouseenter',()=>{hovered=true;sync();});
