@@ -46,7 +46,7 @@ $$('[data-carousel]').forEach(root=>{
   toggle.disabled=preference.matches;
   toggle.textContent=paused||preference.matches?ui.play_carousel:ui.pause_carousel;
   toggle.setAttribute('aria-pressed',String(!paused&&!preference.matches));
-  if(!paused&&!preference.matches&&!hovered&&!document.hidden)timer=setTimeout(()=>show(index+1),7000);
+  if(!paused&&!preference.matches&&!hovered&&!document.hidden)timer=setTimeout(()=>show(index+1),5000);
  }
  const thumbs=$$('[data-carousel-goto]',root), strip=thumbs[0]&&thumbs[0].parentElement;
  function show(next,manual=false){
